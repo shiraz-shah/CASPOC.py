@@ -8,16 +8,11 @@ The sparse PLS implementation is inspired by `mixOmics::spls`, but it is not a
 numerically exact port. It uses iterative loading updates, mixOmics-style
 `keepX`/`keepY` soft thresholding, L2 normalization, and component deflation.
 
-## Reference data
+## Installation
 
-Two public `mixOmics` datasets are useful for validation:
-
-- `mixOmics::liver.toxicity`: used in the upstream `spls` examples.
-- `mixOmics::breast.TCGA`: used in the original CASPOC documentation example.
-
-These are good candidates for cross-language comparison tests if an R
-environment with `mixOmics` and `caspoc` is available. The Python package also
-includes synthetic tests that do not require R.
+```bash
+pip install git+https://github.com/shiraz-shah/CASPOC.py.git
+```
 
 ## Example
 
