@@ -32,3 +32,23 @@ model.tune_correlations_
 model.test_correlations_
 model.train_loadings_x_
 ```
+
+## In-Python manual pages
+
+The package includes small manual tables for notebook and console use:
+
+```python
+from caspoc import manual_page, manual_topics
+
+manual_topics()
+manual_page("CASPOC")
+manual_page("CASPOC.outputs")
+manual_page("CASPOC.R")
+manual_page("SparsePLS")
+```
+
+Use `tune_correlations_` to choose `keepX`/`keepY`, then use the matching rows
+in `test_correlations_` for held-out downstream statistics.
+
+The `CASPOC.R` topic maps the original R package argument and output names
+from `jonathanth/caspoc` to this Python API.
