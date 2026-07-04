@@ -29,3 +29,25 @@ def test_caspoc_returns_expected_tables():
     assert model.test_scores_y_.shape[0] == 3 * 4 * 9
     assert model.yhat_test_.shape[0] == 3 * 4 * 9
     assert model.result_.test_correlations is model.test_correlations_
+
+
+def test_caspoc_univariate_y_second_component_correlations_are_finite():
+    rng = np.random.default_rng(13)
+    latent = rng.normal(size=(45, 2))
+    X = latent @ rng.normal(size=(2, 12)) + 0.2 * rng.normal(size=(45, 12))
+    y = latent @ np.array([0.9, 0.35]) + 0.2 * rng.normal(size=45)
+
+    model = CASPOC(
+        n_components=2,
+        n_repeats=3,
+        n_folds=5,
+        keep_x_options=[1, 3, 6],
+        keep_y_options=[1],
+        fix_x=[1],
+        fix_y=[1],
+        random_state=101,
+    ).fit(X, y)
+
+    comp2 = model.tune_correlations_.query("Component == 2")
+
+    assert comp2["Correlation"].notna().all()

@@ -109,10 +109,9 @@ class SparsePLS(BaseEstimator, TransformerMixin):
         return self
 
     def transform(self, X, Y=None):
-        x_scores = self.transform_x(X)
         if Y is None:
-            return x_scores
-        return x_scores, self.transform_y(Y)
+            return self.transform_x(X)
+        return self._deflated_pair_scores(as_2d_array(X, "X"), as_2d_array(Y, "Y"))
 
     def transform_x(self, X):
         return self._deflated_scores(as_2d_array(X, "X"), self.x_weights_)
@@ -156,6 +155,30 @@ class SparsePLS(BaseEstimator, TransformerMixin):
                 residual = residual - np.outer(score, loading)
             scores.append(score)
         return np.column_stack(scores)
+
+    def _deflated_pair_scores(
+        self, X: np.ndarray, Y: np.ndarray
+    ) -> tuple[np.ndarray, np.ndarray]:
+        x_residual = X.copy()
+        y_residual = Y.copy()
+        x_scores = []
+        y_scores = []
+
+        for comp in range(self.n_components):
+            x_score = x_residual @ self.x_weights_[:, comp]
+            y_score = y_residual @ self.y_weights_[:, comp]
+
+            denom = float(x_score.T @ x_score)
+            if denom > np.finfo(float).eps:
+                x_loading = (x_residual.T @ x_score) / denom
+                y_loading = (y_residual.T @ x_score) / denom
+                x_residual = x_residual - np.outer(x_score, x_loading)
+                y_residual = y_residual - np.outer(x_score, y_loading)
+
+            x_scores.append(x_score)
+            y_scores.append(y_score)
+
+        return np.column_stack(x_scores), np.column_stack(y_scores)
 
     def _expand_keep(self, keep, n_features: int, name: str) -> list[int]:
         if keep is None:
