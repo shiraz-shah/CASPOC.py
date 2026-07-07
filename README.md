@@ -57,8 +57,8 @@ model = CASPOC(n_components = 2, fix_x = [1, 30])
 model = CASPOC(n_components = 2, fix_x = [1], keep_x_options = [30])
 model.fit(x, y)
 # assessing model predictions for held-out test set aginst true y
-roc_auc_score(y, model.yhat_test_.groupby("Sample").mean()["Y1"].loc[y.index])
-spearmanr(y, model.yhat_test_.groupby("Sample").mean()["Y1"].loc[y.index])
+roc_auc_score(y, model.yhat_test_.query("Repeat == 1").set_index("Sample")["Y1"].loc[y.index])
+spearmanr(y, model.yhat_test_..query("Repeat == 1").set_index("Sample")["Y1"].loc[y.index])
 ```
 
 ## In-Python manual pages
