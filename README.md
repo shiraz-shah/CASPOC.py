@@ -41,12 +41,14 @@ model.fit(X, y)
 sns.boxplot(x='KeepX', y='Correlation', data=model.tune_correlations_)
 ```
 <img width="575" height="430" alt="image" src="https://github.com/user-attachments/assets/49763bd2-5164-4e30-94ed-17c2b36e5a8a" />
+
 ```python
 model = CASPOC(n_components = 2, fix_x = [1])
 model.fit(x, y)
 sns.boxplot(x='KeepX', y='Correlation', data=model.tune_correlations_.query("Component == 2"))
 ```
 <img width="575" height="429" alt="image" src="https://github.com/user-attachments/assets/ad15c207-6e2d-4e0c-8768-0141b4dfa71e" />
+
 ```python
 model = CASPOC(n_components = 2, fix_x = [1, 30])
 ...
@@ -61,7 +63,8 @@ spearmanr(y, model.yhat_test_.groupby("Sample").mean()["Y1"].loc[y.index])
 
 ## In-Python manual pages
 
-The package includes small manual tables for notebook and console use:
+The package includes small manual tables for that are especially useful for
+AI coding agents to learn how to use CASPOC.
 
 ```python
 from caspoc import manual_page, manual_topics
