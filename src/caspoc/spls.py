@@ -96,6 +96,7 @@ class SparsePLS(BaseEstimator, TransformerMixin):
         self.n_iter_ = n_iter
 
         self.coef_ = np.linalg.pinv(X) @ Y
+        self.score_coef_ = np.linalg.pinv(self.x_scores_) @ Y
         self.fit_ = SparsePLSFit(
             x_weights=self.x_weights_,
             y_weights=self.y_weights_,
@@ -103,7 +104,7 @@ class SparsePLS(BaseEstimator, TransformerMixin):
             y_loadings=self.y_loadings_,
             x_scores=self.x_scores_,
             y_scores=self.y_scores_,
-            coef_=self.coef_,
+            coef_=self.score_coef_,
             n_iter=self.n_iter_,
         )
         return self
@@ -120,7 +121,8 @@ class SparsePLS(BaseEstimator, TransformerMixin):
         return self._deflated_scores(as_2d_array(Y, "Y"), self.y_weights_)
 
     def predict(self, X):
-        return as_2d_array(X, "X") @ self.coef_
+        scores = self.transform_x(X)
+        return scores @ self.score_coef_
 
     def _fit_component(self, X, Y, keep_x: int, keep_y: int):
         cross_cov = X.T @ Y
