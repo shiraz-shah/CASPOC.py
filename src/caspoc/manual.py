@@ -139,6 +139,15 @@ _MANUAL_PAGES: dict[str, list[dict[str, str]]] = {
                 "applied to tune and test samples."
             ),
         },
+        {
+            "section": "folding",
+            "name": "univariate binary Y",
+            "description": (
+                "When Y has one column and exactly two unique values, CASPOC "
+                "automatically uses StratifiedKFold so cases and controls are "
+                "distributed across folds. Manual folds are never overridden."
+            ),
+        },
     ],
     "CASPOC.outputs": [
         {
@@ -211,6 +220,28 @@ _MANUAL_PAGES: dict[str, list[dict[str, str]]] = {
                 "The repeated fold index structure used by fit(). This can be "
                 "reused as manual_folds to reproduce a split exactly."
             ),
+        },
+        {
+            "section": "attribute",
+            "name": "fold_strategy_",
+            "description": (
+                "Fitted fold strategy: StratifiedKFold for automatic univariate "
+                "binary Y folds, KFold otherwise, or manual when manual_folds was "
+                "supplied."
+            ),
+        },
+        {
+            "section": "attribute",
+            "name": "y_type_",
+            "description": (
+                "Fitted Y classification used for fold selection: univariate, "
+                "univariate binary, or multivariate."
+            ),
+        },
+        {
+            "section": "attribute",
+            "name": "fold_message_",
+            "description": "Short fitted message describing the fold strategy used.",
         },
     ],
     "CASPOC.R": [

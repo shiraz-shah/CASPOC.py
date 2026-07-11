@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from html import escape
 
 import numpy as np
 import pandas as pd
 from scipy.stats import spearmanr
-from sklearn.model_selection import KFold
+from sklearn.model_selection import KFold, StratifiedKFold
 from sklearn.preprocessing import StandardScaler
 
 from caspoc._utils import (
@@ -79,7 +80,22 @@ class CASPOC:
 
         keep_x_options = self.keep_x_options or default_keep_options(X.shape[1])
         keep_y_options = self.keep_y_options or default_keep_options(Y.shape[1])
-        folds = manual_folds if manual_folds is not None else self._make_folds(X.shape[0])
+        y_labels = self._binary_univariate_labels(Y)
+        if manual_folds is not None:
+            folds = manual_folds
+            self.y_type_ = self._y_type(Y)
+            self.fold_strategy_ = "manual"
+            self.fold_message_ = "Manual folds supplied. Using manual_folds."
+        elif y_labels is not None:
+            folds = self._make_folds(X.shape[0], y_labels)
+            self.y_type_ = "univariate binary"
+            self.fold_strategy_ = "StratifiedKFold"
+            self.fold_message_ = "Univariate binary Y. Using StratifiedKFold."
+        else:
+            folds = self._make_folds(X.shape[0])
+            self.y_type_ = self._y_type(Y)
+            self.fold_strategy_ = "KFold"
+            self.fold_message_ = "Using KFold."
         self._validate_folds(folds, X.shape[0])
 
         tune_score_x_frames = []
@@ -238,16 +254,89 @@ class CASPOC:
         self.yhat_test_ = result.yhat_test
         return self
 
-    def _make_folds(self, n_samples: int) -> list[list[np.ndarray]]:
+    def _make_folds(
+        self,
+        n_samples: int,
+        y_labels: np.ndarray | None = None,
+    ) -> list[list[np.ndarray]]:
         folds = []
         for repeat_idx in range(1, self.n_repeats + 1):
-            splitter = KFold(
-                n_splits=self.n_folds,
-                shuffle=True,
-                random_state=self.random_state + repeat_idx,
-            )
-            folds.append([test_idx for _, test_idx in splitter.split(np.arange(n_samples))])
+            if y_labels is None:
+                splitter = KFold(
+                    n_splits=self.n_folds,
+                    shuffle=True,
+                    random_state=self.random_state + repeat_idx,
+                )
+                split = splitter.split(np.arange(n_samples))
+            else:
+                splitter = StratifiedKFold(
+                    n_splits=self.n_folds,
+                    shuffle=True,
+                    random_state=self.random_state + repeat_idx,
+                )
+                split = splitter.split(np.arange(n_samples), y_labels)
+            folds.append([test_idx for _, test_idx in split])
         return folds
+
+    def _binary_univariate_labels(self, Y: np.ndarray) -> np.ndarray | None:
+        if Y.shape[1] != 1:
+            return None
+
+        labels = Y[:, 0]
+        classes, counts = np.unique(labels, return_counts=True)
+        if classes.size != 2:
+            return None
+        if counts.min() < self.n_folds:
+            raise ValueError(
+                "Univariate binary Y was detected, but each class must have at "
+                "least n_folds samples for stratified folds."
+            )
+        return labels
+
+    def _y_type(self, Y: np.ndarray) -> str:
+        if Y.shape[1] != 1:
+            return "multivariate"
+        if np.unique(Y[:, 0]).size == 2:
+            return "univariate binary"
+        return "univariate"
+
+    def _repr_html_(self) -> str:
+        rows = [
+            ("n_components", self.n_components),
+            ("n_repeats", self.n_repeats),
+            ("n_folds", self.n_folds),
+        ]
+        if hasattr(self, "fold_strategy_"):
+            rows.extend(
+                [
+                    ("fit status", "fitted"),
+                    ("Y type", self.y_type_),
+                    ("fold strategy", self.fold_strategy_),
+                    ("fold message", self.fold_message_),
+                ]
+            )
+        else:
+            rows.append(("fit status", "not fitted"))
+
+        body = "".join(
+            "<tr>"
+            f"<th>{escape(str(name))}</th>"
+            f"<td>{escape(str(value))}</td>"
+            "</tr>"
+            for name, value in rows
+        )
+        return (
+            "<div style='border:1px solid #9ec5fe; border-radius:6px; "
+            "background:#eef6ff; padding:12px; max-width:520px'>"
+            "<div style='font-weight:700; color:#084298; margin-bottom:8px'>"
+            "CASPOC</div>"
+            "<table style='border-collapse:collapse'>"
+            "<tbody>"
+            f"{body}"
+            "</tbody>"
+            "</table>"
+            "</div>"
+        )
 
     def _validate_folds(self, folds: list[list[np.ndarray]], n_samples: int) -> None:
         if len(folds) != self.n_repeats:
@@ -255,9 +344,13 @@ class CASPOC:
         for repeat_folds in folds:
             if len(repeat_folds) != self.n_folds:
                 raise ValueError("Each manual_folds repeat must contain n_folds folds.")
-            combined = np.sort(np.concatenate([np.asarray(fold) for fold in repeat_folds]))
+            combined = np.sort(
+                np.concatenate([np.asarray(fold) for fold in repeat_folds])
+            )
             if not np.array_equal(combined, np.arange(n_samples)):
-                raise ValueError("Each repeat's folds must partition all sample indices.")
+                raise ValueError(
+                    "Each repeat's folds must partition all sample indices."
+                )
 
     def _component_keep(self, value: int, fixed: list[int] | None) -> list[int]:
         if fixed is None:
